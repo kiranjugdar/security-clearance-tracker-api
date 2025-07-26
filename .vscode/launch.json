@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "App with Mock Profile",
+            "request": "launch",
+            "mainClass": "com.clearance.tracker.SecurityClearanceTrackerApiApplication",
+            "projectName": "security-clearance-tracker-api",
+            "args": "--spring.profiles.active=mock",
+            "vmArgs": "",
+            "console": "internalConsole",
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}",
+            "env": {}
+        },
+        {
+            "type": "java",
+            "name": "App with Dev Profile",
+            "request": "launch",
+            "mainClass": "com.clearance.tracker.SecurityClearanceTrackerApiApplication",
+            "projectName": "security-clearance-tracker-api",
+            "args": "--spring.profiles.active=dev",
+            "vmArgs": "",
+            "console": "internalConsole",
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}",
+            "env": {}
+        },
+        {
+            "type": "java",
+            "name": "SecurityClearanceTrackerApiApplication",
+            "request": "launch",
+            "mainClass": "com.clearance.tracker.SecurityClearanceTrackerApiApplication",
+            "projectName": "security-clearance-tracker-api",
+            "args": "",
+            "vmArgs": "",
+            "console": "internalConsole",
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}",
+            "env": {}
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot - SecurityClearanceTrackerApiApplication",
+            "request": "launch",
+            "mainClass": "com.clearance.tracker.SecurityClearanceTrackerApiApplication",
+            "projectName": "security-clearance-tracker-api",
+            "args": "",
+            "vmArgs": "",
+            "console": "internalConsole",
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "preLaunchTask": "maven-compile"
+        }
+    ]
+}

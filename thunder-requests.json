@@ -1,0 +1,48 @@
+[
+  {
+    "name": "Get Combined Case History",
+    "method": "GET",
+    "url": "http://localhost:9090/api/clearance/case-history",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "description": "Retrieves combined case history data including:\n- All case history items\n- Current status of first 'In Progress' case\n- Status history for selected case\n- Selected case ID"
+  },
+  {
+    "name": "Get PDF Contents List (JSON)",
+    "method": "GET",
+    "url": "http://localhost:9090/api/clearance/pdf-contents/SCT-2024-001",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "description": "Retrieves PDF document metadata and content as JSON for a specific case ID including:\n- Document names, types, and metadata\n- Text content of documents\n- Upload information\n\nReplace 'SCT-2024-001' with desired case ID"
+  },
+  {
+    "name": "Download PDF - Application Form",
+    "method": "GET",
+    "url": "http://localhost:9090/api/clearance/pdf-download/SCT-2024-001/1",
+    "headers": {},
+    "description": "Downloads Security Clearance Application Form as PDF file.\nURL format: /pdf-download/{caseId}/{documentId}\n- caseId: SCT-2024-001\n- documentId: 1 (Application Form)\n\nBrowser will download the PDF file directly."
+  },
+  {
+    "name": "Download PDF - Investigation Report", 
+    "method": "GET",
+    "url": "http://localhost:9090/api/clearance/pdf-download/SCT-2024-001/2",
+    "headers": {},
+    "description": "Downloads Background Investigation Report as PDF file.\nURL format: /pdf-download/{caseId}/{documentId}\n- caseId: SCT-2024-001\n- documentId: 2 (Investigation Report)\n\nBrowser will download the PDF file directly."
+  },
+  {
+    "name": "Download PDF - Interview Transcript",
+    "method": "GET", 
+    "url": "http://localhost:9090/api/clearance/pdf-download/SCT-2024-001/3",
+    "headers": {},
+    "description": "Downloads Security Interview Transcript as PDF file.\nURL format: /pdf-download/{caseId}/{documentId}\n- caseId: SCT-2024-001\n- documentId: 3 (Interview Transcript)\n\nBrowser will download the PDF file directly."
+  },
+  {
+    "name": "Download PDF - Medical Certificate",
+    "method": "GET",
+    "url": "http://localhost:9090/api/clearance/pdf-download/SCT-2024-001/4", 
+    "headers": {},
+    "description": "Downloads Medical Clearance Certificate as PDF file.\nURL format: /pdf-download/{caseId}/{documentId}\n- caseId: SCT-2024-001\n- documentId: 4 (Medical Certificate)\n\nBrowser will download the PDF file directly."
+  }
+]
