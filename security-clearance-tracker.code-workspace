@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../security-clearance-tracker"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic"
+	}
+}

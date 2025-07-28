@@ -32,15 +32,16 @@ public class SecurityClearanceController {
     private PdfGeneratorService pdfGeneratorService;
 
     @GetMapping("/case-history")
-    public ResponseEntity<?> getCaseHistory(HttpServletRequest request) {
-        logger.info("Received request to get combined case history from client: {}", request.getRemoteAddr());
+    public ResponseEntity<?> getCaseHistory(@RequestParam String subjectPersonaObjectId, HttpServletRequest request) {
+        logger.info("Received request to get combined case history for Subject Persona Object ID: {} from client: {}", subjectPersonaObjectId, request.getRemoteAddr());
         
         try {
-            CombinedCaseResponse combinedResponse = externalApiService.getCaseHistory();
-            logger.info("Successfully processed combined case history request. Selected case: {}, Total cases: {}, Status history items: {}", 
+            CombinedCaseResponse combinedResponse = externalApiService.getCaseHistory(subjectPersonaObjectId);
+            logger.info("Successfully processed combined case history request for Subject Persona Object ID: {}. Selected case: {}, Total cases: {}, History items: {}", 
+                       subjectPersonaObjectId,
                        combinedResponse.getSelectedCaseId(),
-                       combinedResponse.getCaseHistory() != null ? combinedResponse.getCaseHistory().size() : 0,
-                       combinedResponse.getStatusHistory() != null ? combinedResponse.getStatusHistory().size() : 0);
+                       combinedResponse.getCasesList() != null && combinedResponse.getCasesList().getCases() != null ? combinedResponse.getCasesList().getCases().size() : 0,
+                       combinedResponse.getCaseHistory() != null && combinedResponse.getCaseHistory().getHistory() != null ? combinedResponse.getCaseHistory().getHistory().size() : 0);
             return ResponseEntity.ok(combinedResponse);
             
         } catch (ApplicationException e) {

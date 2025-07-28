@@ -1,0 +1,441 @@
+-------------------------------------------------------------------------------
+Feature: Retrieve Case List by Subject Persona Object ID
+
+  As an external portal
+  I want to be able to retrieve a list of cases
+  So that I can display a summary of cases associated with a specific subject.
+
+  Scenario: Successful retrieval of case list
+
+    Given a valid Subject Persona Object ID "dcas884617ORG1121PVQABC"
+    And the service is available
+
+    When the external portal requests the list of cases for the Subject Persona Object ID "dcas884617ORG1121PVQABC"
+
+    Then the service should return a 200 OK HTTP status code
+    And the response should be a JSON array of case objects
+    And each case object in the array should contain the following fields:
+      | Field         | Type   |
+      |---------------|--------|
+      | NBISCaseID    | String |
+      | DISAStatus    | String |
+      | SubjectID     | String |
+      | pxCreateDateTime | String (ISO 8601) |
+      | pxUpdateDateTime | String (ISO 8601) |
+    And the response should be paginated with a default page size of 25
+    And the response should include metadata indicating the current page, total pages, and total number of cases.
+
+  Scenario: No cases found for the Subject Persona Object ID
+
+    Given a Subject Persona Object ID "invalid_persona_id" that has no associated cases
+    And the service is available
+
+    When the external portal requests the list of cases for the Subject Persona Object ID "invalid_persona_id"
+
+    Then the service should return a 200 OK HTTP status code
+    And the response should be an empty JSON array.
+    And the response should include metadata indicating the current page as 1, total pages as 1, and total number of cases as 0.
+
+  Scenario: Invalid Subject Persona Object ID format
+
+    Given an invalid Subject Persona Object ID "invalid-format"
+    And the service is available
+
+    When the external portal requests the list of cases for the Subject Persona Object ID "invalid-format"
+
+    Then the service should return a 400 Bad Request HTTP status code
+    And the response should include a JSON error message indicating the invalid ID format.
+
+  Scenario: Service Unavailable
+
+    Given the service is unavailable
+
+    When the external portal requests the list of cases for the Subject Persona Object ID "dcas884617ORG1121PVQABC"
+
+    Then the service should return a 503 Service Unavailable HTTP status code
+    And the response should include a JSON error message indicating the service is temporarily unavailable.
+
+JSON Example:
+1. Case List Service
+
+Endpoint: /api/v1/cases (Example)
+Method: GET
+Request (Query Parameter):
+
+{
+  "spPersonaObjectID": "dcas884617ORG1121PVQABC",
+}
+
+Response (Success - 200 OK):
+{
+  "cases": [
+    {
+      "NBISCaseID": "25092CASE1329752",
+      "DISAStatus": "Review - eApp Received",
+      "SubjectID": "272ad768-ea92-4972-a8a5-2c270fdddd33",
+      "pxCreateDateTime": "2025-04-02T17:20:19.943Z",
+      "pxUpdateDateTime": "2025-07-18T17:06:45.517Z"
+    },
+    {
+      "NBISCaseID": "25092CASE1329753",
+      "DISAStatus": "Pending Investigation",
+      "SubjectID": "272ad768-ea92-4972-a8a5-2c270fdddd34",
+      "pxCreateDateTime": "2025-04-03T09:15:00.123Z",
+      "pxUpdateDateTime": "2025-07-19T12:30:00.456Z"
+    }
+    // ... more cases ...
+  ],
+  "metadata": {
+    "totalCases": 150,
+  }
+}
+
+Response (No Cases Found - 200 OK):
+{
+  "cases": [],
+  "metadata": {
+    "totalCases": 0,
+  }
+}
+
+Response (Invalid Persona ID - 400 Bad Request):
+{
+  "error": "Invalid Subject Persona Object ID format.  Must be a valid UUID.",
+  "code": "INVALID_INPUT"
+}
+
+Response (Service Unavailable - 503 Service Unavailable):
+{
+  "error": "Service is temporarily unavailable. Please try again later.",
+  "code": "SERVICE_UNAVAILABLE"
+}
+
+Pega Format:
+Cases List Service by Subject Persona Object ID
+Cases (PageList)
+        pyWorkPage (Page)
+                spPersonaObjectID       dcas884617ORG1121PVQABC
+                DISAStatus      Review - eApp Received
+                SubjectID - 272ad768-ea92-4972-a8a5-2c270fdddd33
+                NBISCaseID - 25092CASE1329752
+                pxCreateDateTime - 20250402T172019.943 GMT
+                pxUpdateDateTime - 20250718T170645.517 GMT
+               
+Questions:  Sort order are we concerned?
+-------------------------------------------------------------------------------
+Feature: Retrieve Case Details by NBIS Case ID
+
+  As an external portal
+  I want to be able to retrieve detailed information for a specific case
+  So that I can display all the relevant data for a selected case.
+
+  Scenario: Successful retrieval of case details
+
+    Given a valid NBIS Case ID "25092CASE1329752"
+    And the service is available
+
+    When the external portal requests the details for the NBIS Case ID "25092CASE1329752"
+
+    Then the service should return a 200 OK HTTP status code
+    And the response should be a JSON object representing the case details
+    And the response should include the following
+      | Field             | Type   |
+      |-------------------|--------|
+      | pyWorkPage        | Object |  (Contains all the detailed case data)
+      |   EAppAccountInfo | Object |
+      |   PIPSStatusCheckResponse | Object |
+      |   MiradorStatus   | String |
+      |   ReleaseDate     | String |
+      |   ...             | ...    | (Other case-specific details as defined)
+
+  Scenario: Case not found for the NBIS Case ID
+
+    Given an NBIS Case ID "invalid_case_id" that does not exist
+    And the service is available
+
+    When the external portal requests the details for the NBIS Case ID "invalid_case_id"
+
+    Then the service should return a 404 Not Found HTTP status code
+    And the response should include a JSON error message indicating that the case was not found.
+
+  Scenario: Invalid NBIS Case ID format
+
+    Given an invalid NBIS Case ID "invalid-format"
+    And the service is available
+
+    When the external portal requests the details for the NBIS Case ID "invalid-format"
+
+    Then the service should return a 400 Bad Request HTTP status code
+    And the response should include a JSON error message indicating the invalid ID format.
+
+  Scenario: Service Unavailable
+
+    Given the service is unavailable
+
+    When the external portal requests the details for the NBIS Case ID "25092CASE1329752"
+
+    Then the service should return a 503 Service Unavailable HTTP status code
+    And the response should include a JSON error message indicating the service is temporarily unavailable.
+
+JSON Example:
+2. Case Details Service
+
+Endpoint: /api/v1/cases/{NBISCaseID} (Example)
+Method: GET
+Request (Path Parameter):
+
+/api/v1/cases/25092CASE1329752
+
+Response (Success - 200 OK):
+{
+  "pyWorkPage": {
+    "spPersonaObjectID": "dcas884617ORG1121PVQABC",
+    "DISAStatus": "Review - eApp Received",
+    "SubjectID": "272ad768-ea92-4972-a8a5-2c270fdddd33",
+    "NBISCaseID": "25092CASE1329752",
+    "pxCreateDateTime": "2025-04-02T17:20:19.943Z",
+    "pxCreateOperator": "System",
+    "pxUpdateDateTime": "2025-07-18T17:06:45.517Z",
+    "pxUpdateOperator": "System",
+    "Add Organization": "Example Org",
+    "Add OrgPath": "/Example/Org/Path",
+    "Add InvestigationType": "High",
+    "Add Form Type": "PVQ-A-B-C",
+    "Add Form Version": "2023",
+    "EAppAccountInfo": {
+      "PreviousStatus": "Initiated/Untouched by Applicant",
+      "Status": "Released to Agency"
+    },
+    "PIPSStatusCheckResponse": {
+      "cancelled": "N",
+      "certifiedByApplicant": "Y",
+      "CurrentStatus": {
+        "code2": "RLTP",
+        "name2": "Released to Parent Agency"
+      },
+    },
+    "MiradorStatus": "Completed",
+    "ReleaseDate": "2025-07-20"
+        "SFArchivalPDFExist": "Yes"
+  }
+}
+
+Response (Case Not Found - 404 Not Found):
+{
+  "error": "Case with NBIS Case ID 'invalid_case_id' not found.",
+  "code": "CASE_NOT_FOUND"
+}
+
+
+Response (Invalid Case ID - 400 Bad Request):
+{
+  "error": "Invalid NBIS Case ID format. Must be alphanumeric.",
+  "code": "INVALID_INPUT"
+}
+
+Response (Service Unavailable - 503 Service Unavailable):
+{
+  "error": "Service is temporarily unavailable. Please try again later.",
+  "code": "SERVICE_UNAVAILABLE"
+}
+
+Pega Format:
+Cases Details by NBIS Case ID
+        pyWorkPage (Page)
+                spPersonaObjectID       dcas884617ORG1121PVQABC
+                DISAStatus      Review - eApp Received
+                SubjectID - 272ad768-ea92-4972-a8a5-2c270fdddd33
+                NBISCaseID - 25092CASE1329752
+                pxCreateDateTime - 20250402T172019.943 GMT
+                pxCreateOperator - System
+                pxUpdateDateTime - 20250718T170645.517 GMT
+                pxUpdateOperator - System
+                Add Organization
+                Add OrgPath
+                Add InvestigationType
+                Add Form Type
+                Add Form Version
+                --eApp - Updated Nightly by Bulk Service--
+                EAppAccountInfo (Page)
+                        PreviousStatus - Initiated/Untouched by Applicant
+                        Status - Released to Agency
+                --eQIP Direct/PIPS--
+                PIPSStatusCheckResponse (Page)
+                        cancelled - N
+                        certifiedByApplicant - Y
+                        CurrentStatus (Page)
+                                code2 - RLTP
+                                name2 - Released to Parent Agency
+                --Mirador still researching where to pull this data--
+                        MiradorStatus
+                        ReleaseDate
+                       
+Questions: Can we define the clearance level requested derived from position details or investigation type requested?
+Simplify the external systems:  source, status, dateofstatus
+-------------------------------------------------------------------------------
+Feature: Retrieve Case History by NBIS Case ID
+
+  As an external portal
+  I want to be able to retrieve the history of events for a specific case
+  So that I can track the progress and changes made to the case.
+
+  Scenario: Successful retrieval of case history
+
+    Given a valid NBIS Case ID "25092CASE1329752"
+    And the service is available
+    And the case has history entries
+
+    When the external portal requests the history for the NBIS Case ID "25092CASE1329752"
+
+    Then the service should return a 200 OK HTTP status code
+    And the response should be a JSON object representing the case history
+    And the response should include the following
+      | Field        | Type       |
+      |--------------|------------|
+      | NBISCaseID   | String     |
+      | History      | Array of Objects | (Each object representing a history entry)
+      |   Time       | String (ISO 8601) |
+      |   Description| String     |
+      |   PerformedBy| String     |
+
+  Scenario: Case not found for the NBIS Case ID
+
+    Given an NBIS Case ID "invalid_case_id" that does not exist
+    And the service is available
+
+    When the external portal requests the history for the NBIS Case ID "invalid_case_id"
+
+    Then the service should return a 404 Not Found HTTP status code
+    And the response should include a JSON error message indicating that the case was not found.
+
+  Scenario: Case exists but has no history entries
+
+    Given a valid NBIS Case ID "25092CASE1329752"
+    And the service is available
+    And the case has no history entries
+
+    When the external portal requests the history for the NBIS Case ID "25092CASE1329752"
+
+    Then the service should return a 200 OK HTTP status code
+    And the response should be a JSON object representing the case history
+    And the History array in the response should be empty.
+
+  Scenario: Invalid NBIS Case ID format
+
+    Given an invalid NBIS Case ID "invalid-format"
+    And the service is available
+
+    When the external portal requests the history for the NBIS Case ID "invalid-format"
+
+    Then the service should return a 400 Bad Request HTTP status code
+    And the response should include a JSON error message indicating the invalid ID format.
+
+  Scenario: Service Unavailable
+
+    Given the service is unavailable
+
+    When the external portal requests the history for the NBIS Case ID "25092CASE1329752"
+
+    Then the service should return a 503 Service Unavailable HTTP status code
+    And the response should include a JSON error message indicating the service is temporarily unavailable.
+
+3. Case History Service
+******(Which statuses from which systems do we need to provide?) - Key Milestones such as created in eApp, Reviewed, Authorized, Released to Mirador or PIPS.******  Run this by the Product Owner.  Don't provide sensitive infomation to the Subject.
+
+Endpoint: /api/v1/cases/{NBISCaseID}/history (Example)
+Method: GET
+Request (Path Parameter):
+
+/api/v1/cases/25092CASE1329752/history
+
+Response (Success - 200 OK):
+{
+  "NBISCaseID": "25092CASE1329752",
+  "History": [
+    {
+      "Time": "2025-06-06T10:00:00Z",
+      "Description": "Agency Initiated Investigation Request.",
+      "PerformedBy": "System"
+    },
+    {
+      "Time": "2025-06-10T14:30:00Z",
+      "Description": "e-QIP data received.",
+      "PerformedBy": "e-QIP Integration"
+    },
+    {
+      "Time": "2025-07-18T16:00:00Z",
+      "Description": "Case status updated to 'Review - eApp Received'.",
+      "PerformedBy": "System"
+    }
+    // ... more history entries ...
+  ]
+}
+
+Response (Case Not Found - 404 Not Found):
+{
+  "error": "Case with NBIS Case ID 'invalid_case_id' not found.",
+  "code": "CASE_NOT_FOUND"
+}
+
+Response (Case Found, No History - 200 OK):
+{
+  "NBISCaseID": "25092CASE1329752",
+  "History": []
+}
+
+Response (Invalid Case ID - 400 Bad Request):
+{
+  "error": "Invalid NBIS Case ID format. Must be alphanumeric.",
+  "code": "INVALID_INPUT"
+}
+
+Response (Service Unavailable - 503 Service Unavailable):
+{
+  "error": "Service is temporarily unavailable. Please try again later.",
+  "code": "SERVICE_UNAVAILABLE"
+}
+
+Pega Format:
+Case History By NBIS Case ID
+        CaseHistory (Page)
+                NBISCaseID
+                History (PageList)
+                        Time
+                        Description
+                        PerformedBy
+eQIP Direct/PIPS
+        pyWorkPage (Page)
+                PIPSStatusCheckResponse (Page)
+                        cancelled - N
+                        certifiedByApplicant - Y
+                        CurrentStatus (Page)
+                                code2 - RLTP
+                                name2 - Released to Parent Agency
+                        EventHistory (PageList)
+                                dateEventOccurred - 6/6/2025
+                                eventTypeId - 1
+                                order - 1
+                                summaryOfAction - Agency Initiated Investigation Request. Details: Initiated by a call to e-QIP Web Service importRequest method.
+                --Mirador still researching where to pull this data--
+                        MiradorStatus
+                        ReleaseDate
+-------------------------------------------------------------------------------
+****Add new service to return their SF Archival PDF for the case****
+Case Details Service should provide the latest PDF identifier - Case ID
+
+-------------------------------------------------------------------------------
+Important Notes:
+
+Adapt to Your Specifics: These are examples. You need to adapt the field names, data types, and error messages to exactly match your Pega implementation and the requirements of the external portal.
+Error Handling: Pay close attention to the error handling scenarios. A well-defined API includes clear error messages to help the portal troubleshoot issues.
+Security: These features don't explicitly cover security. You'll need separate features and acceptance criteria to verify that your services are properly secured with authentication and authorization.
+Performance: Consider adding performance-related acceptance criteria (e.g., "The service should return a response within 500ms").
+Pagination: The Case List Service includes pagination. Adjust the default page size as needed.
+JSON Structure: Make sure the JSON structure in your responses is well-defined and consistent. Consider using a schema definition language (e.g., JSON Schema) to formally define the structure of your APIs.
+These features and acceptance criteria should give you a good starting point for developing and testing your microservices.  Remember to tailor them to your specific requirements.
+-------------------------------------------------------------------------------
+
+1. Cases List
+2. Case Details
+3. Case History
+4. PDF

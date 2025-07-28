@@ -1,45 +1,43 @@
 package com.clearance.tracker.dto;
 
-import java.util.List;
-
 public class CombinedCaseResponse {
-    private List<CaseHistoryItem> caseHistory;
-    private CurrentStatus currentStatus;
-    private List<StatusHistoryItem> statusHistory;
+    private CaseListResponseDto casesList;
+    private CaseDetailsDto selectedCaseDetails;
+    private CaseHistoryResponseDto caseHistory;
     private String selectedCaseId;
 
     public CombinedCaseResponse() {}
 
-    public CombinedCaseResponse(List<CaseHistoryItem> caseHistory, CurrentStatus currentStatus, 
-                               List<StatusHistoryItem> statusHistory, String selectedCaseId) {
+    public CombinedCaseResponse(CaseListResponseDto casesList, CaseDetailsDto selectedCaseDetails, 
+                               CaseHistoryResponseDto caseHistory, String selectedCaseId) {
+        this.casesList = casesList;
+        this.selectedCaseDetails = selectedCaseDetails;
         this.caseHistory = caseHistory;
-        this.currentStatus = currentStatus;
-        this.statusHistory = statusHistory;
         this.selectedCaseId = selectedCaseId;
     }
 
-    public List<CaseHistoryItem> getCaseHistory() {
+    public CaseListResponseDto getCasesList() {
+        return casesList;
+    }
+
+    public void setCasesList(CaseListResponseDto casesList) {
+        this.casesList = casesList;
+    }
+
+    public CaseDetailsDto getSelectedCaseDetails() {
+        return selectedCaseDetails;
+    }
+
+    public void setSelectedCaseDetails(CaseDetailsDto selectedCaseDetails) {
+        this.selectedCaseDetails = selectedCaseDetails;
+    }
+
+    public CaseHistoryResponseDto getCaseHistory() {
         return caseHistory;
     }
 
-    public void setCaseHistory(List<CaseHistoryItem> caseHistory) {
+    public void setCaseHistory(CaseHistoryResponseDto caseHistory) {
         this.caseHistory = caseHistory;
-    }
-
-    public CurrentStatus getCurrentStatus() {
-        return currentStatus;
-    }
-
-    public void setCurrentStatus(CurrentStatus currentStatus) {
-        this.currentStatus = currentStatus;
-    }
-
-    public List<StatusHistoryItem> getStatusHistory() {
-        return statusHistory;
-    }
-
-    public void setStatusHistory(List<StatusHistoryItem> statusHistory) {
-        this.statusHistory = statusHistory;
     }
 
     public String getSelectedCaseId() {

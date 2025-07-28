@@ -1,9 +1,19 @@
 package com.clearance.tracker.service;
 
+import com.clearance.tracker.dto.CaseDto;
+import com.clearance.tracker.dto.CaseDetailsDto;
+import com.clearance.tracker.dto.CaseHistoryDto;
 import com.clearance.tracker.dto.CaseHistoryItem;
+import com.clearance.tracker.dto.CaseHistoryResponseDto;
+import com.clearance.tracker.dto.CaseListResponseDto;
 import com.clearance.tracker.dto.CombinedCaseResponse;
 import com.clearance.tracker.dto.CurrentStatus;
+import com.clearance.tracker.dto.CurrentStatusDto;
+import com.clearance.tracker.dto.EAppAccountInfoDto;
+import com.clearance.tracker.dto.MetadataDto;
+import com.clearance.tracker.dto.PIPSStatusCheckResponseDto;
 import com.clearance.tracker.dto.PdfContent;
+import com.clearance.tracker.dto.PyWorkPageDto;
 import com.clearance.tracker.dto.StatusHistoryItem;
 import com.clearance.tracker.exception.ApplicationException;
 import org.slf4j.Logger;
@@ -24,30 +34,31 @@ public class MockExternalApiService extends ExternalApiService {
     private static final String IN_PROGRESS_STATUS = "In Progress";
 
     @Override
-    public CombinedCaseResponse getCaseHistory() throws ApplicationException {
-        logger.info("Using MOCK service - Starting complex case history retrieval process");
+    public CombinedCaseResponse getCaseHistory(String subjectPersonaObjectId) throws ApplicationException {
+        logger.info("Using MOCK service - Starting complex case history retrieval process for Subject Persona Object ID: {}", subjectPersonaObjectId);
         
         try {
-            // Step 1: Mock case history data
-            List<CaseHistoryItem> allCases = createMockCaseHistory();
-            logger.info("Step 1 completed: Retrieved {} mock cases", allCases.size());
+            // Step 1: Mock case list data for subject
+            CaseListResponseDto casesList = createMockCasesList(subjectPersonaObjectId);
+            logger.info("Step 1 completed: Retrieved {} mock cases for Subject Persona Object ID: {}", 
+                       casesList.getCases().size(), subjectPersonaObjectId);
             
             // Step 2: Filter cases with "In Progress" status and pick first one
-            String selectedCaseId = filterAndSelectFirstInProgressCase(allCases);
+            String selectedCaseId = filterAndSelectFirstInProgressCaseFromV1(casesList.getCases());
             
-            // Step 3: Mock status history for selected case
-            List<StatusHistoryItem> statusHistory = createMockStatusHistory(selectedCaseId);
-            logger.info("Step 3 completed: Retrieved {} mock status history items for case {}", 
-                       statusHistory.size(), selectedCaseId);
+            // Step 3: Get mock case details for selected case
+            CaseDetailsDto caseDetails = createMockCaseDetails(selectedCaseId);
             
-            // Step 4: Extract current status from mock data
-            CurrentStatus currentStatus = extractCurrentStatusFromHistory(statusHistory, selectedCaseId);
+            // Step 4: Mock case history for selected case
+            CaseHistoryResponseDto caseHistory = createMockCaseHistoryResponse(selectedCaseId);
+            logger.info("Step 4 completed: Retrieved {} mock case history items for case {}", 
+                       caseHistory.getHistory().size(), selectedCaseId);
             
             // Step 5: Combine all mock data and return
-            CombinedCaseResponse response = new CombinedCaseResponse(allCases, currentStatus, statusHistory, selectedCaseId);
+            CombinedCaseResponse response = new CombinedCaseResponse(casesList, caseDetails, caseHistory, selectedCaseId);
             
-            logger.info("Successfully completed MOCK case history retrieval. Selected case: {}, Total cases: {}, Status history items: {}", 
-                       selectedCaseId, allCases.size(), statusHistory.size());
+            logger.info("Successfully completed MOCK case history retrieval for Subject Persona Object ID: {}. Selected case: {}, Total cases: {}, History items: {}", 
+                       subjectPersonaObjectId, selectedCaseId, casesList.getCases().size(), caseHistory.getHistory().size());
             
             return response;
             
@@ -57,15 +68,77 @@ public class MockExternalApiService extends ExternalApiService {
         }
     }
 
-    private List<CaseHistoryItem> createMockCaseHistory() {
-        logger.info("Creating mock case history data");
-        return Arrays.asList(
-            new CaseHistoryItem(1L, "SCT-2024-001", "In Progress", "/case/SCT-2024-001"),
-            new CaseHistoryItem(2L, "SCT-2024-002", "Under Review", "/case/SCT-2024-002"),
-            new CaseHistoryItem(3L, "SCT-2024-003", "Approved", "/case/SCT-2024-003"),
-            new CaseHistoryItem(4L, "SCT-2024-004", "In Progress", "/case/SCT-2024-004"),
-            new CaseHistoryItem(5L, "SCT-2024-005", "Closed", "/case/SCT-2024-005")
+    private CaseListResponseDto createMockCasesList(String subjectPersonaObjectId) {
+        logger.info("Creating mock case list data for Subject Persona Object ID: {}", subjectPersonaObjectId);
+        
+        List<CaseDto> cases = Arrays.asList(
+            new CaseDto("25092CASE1329752", "In Progress", "272ad768-ea92-4972-a8a5-2c270fdddd33", 
+                "2025-04-02T17:20:19.943Z", "2025-07-18T17:06:45.517Z"),
+            new CaseDto("25092CASE1329753", "Pending Investigation", "272ad768-ea92-4972-a8a5-2c270fdddd34", 
+                "2025-04-03T09:15:00.123Z", "2025-07-19T12:30:00.456Z"),
+            new CaseDto("25092CASE1329754", "Review - eApp Received", "272ad768-ea92-4972-a8a5-2c270fdddd35", 
+                "2025-04-04T14:30:00.789Z", "2025-07-20T16:45:00.123Z"),
+            new CaseDto("25092CASE1329755", "In Progress", "272ad768-ea92-4972-a8a5-2c270fdddd36", 
+                "2025-04-05T08:00:00.456Z", "2025-07-21T09:30:00.789Z"),
+            new CaseDto("25092CASE1329756", "Completed", "272ad768-ea92-4972-a8a5-2c270fdddd37", 
+                "2025-04-06T11:45:00.123Z", "2025-07-22T14:15:00.456Z")
         );
+        
+        MetadataDto metadata = new MetadataDto(cases.size());
+        return new CaseListResponseDto(cases, metadata);
+    }
+
+    private CaseDetailsDto createMockCaseDetails(String nbisId) {
+        logger.info("Creating mock case details for NBIS ID: {}", nbisId);
+        
+        EAppAccountInfoDto eAppInfo = new EAppAccountInfoDto(
+            "Initiated/Untouched by Applicant", 
+            "Released to Agency"
+        );
+        
+        CurrentStatusDto currentStatus = new CurrentStatusDto("RLTP", "Released to Parent Agency");
+        
+        PIPSStatusCheckResponseDto pipsResponse = new PIPSStatusCheckResponseDto(
+            "N", "Y", currentStatus
+        );
+        
+        PyWorkPageDto pyWorkPage = new PyWorkPageDto(
+            "dcas884617ORG1121PVQABC",
+            "Review - eApp Received",
+            "272ad768-ea92-4972-a8a5-2c270fdddd33",
+            nbisId,
+            "2025-04-02T17:20:19.943Z",
+            "System",
+            "2025-07-18T17:06:45.517Z",
+            "System",
+            "Example Org",
+            "/Example/Org/Path",
+            "High",
+            "PVQ-A-B-C",
+            "2023",
+            eAppInfo,
+            pipsResponse,
+            "Completed",
+            "2025-07-20",
+            "Yes"
+        );
+        
+        return new CaseDetailsDto(pyWorkPage);
+    }
+
+    private CaseHistoryResponseDto createMockCaseHistoryResponse(String nbisId) {
+        logger.info("Creating mock case history response for NBIS ID: {}", nbisId);
+        
+        List<CaseHistoryDto> history = Arrays.asList(
+            new CaseHistoryDto("2025-06-06T10:00:00Z", 
+                "Agency Initiated Investigation Request.", "System"),
+            new CaseHistoryDto("2025-06-10T14:30:00Z", 
+                "e-QIP data received.", "e-QIP Integration"),
+            new CaseHistoryDto("2025-07-18T16:00:00Z", 
+                "Case status updated to 'Review - eApp Received'.", "System")
+        );
+        
+        return new CaseHistoryResponseDto(nbisId, history);
     }
 
     private List<StatusHistoryItem> createMockStatusHistory(String caseId) {
@@ -89,21 +162,21 @@ public class MockExternalApiService extends ExternalApiService {
         );
     }
 
-    private String filterAndSelectFirstInProgressCase(List<CaseHistoryItem> allCases) throws ApplicationException {
-        logger.info("Step 2: Filtering mock cases with '{}' status", IN_PROGRESS_STATUS);
+    private String filterAndSelectFirstInProgressCaseFromV1(List<CaseDto> allCases) throws ApplicationException {
+        logger.info("Step 2: Filtering mock v1 cases with '{}' status", IN_PROGRESS_STATUS);
         
-        Optional<CaseHistoryItem> inProgressCase = allCases.stream()
-            .filter(caseItem -> IN_PROGRESS_STATUS.equalsIgnoreCase(caseItem.getCaseStatus()))
+        Optional<CaseDto> inProgressCase = allCases.stream()
+            .filter(caseItem -> IN_PROGRESS_STATUS.equalsIgnoreCase(caseItem.getDISAStatus()))
             .findFirst();
         
         if (inProgressCase.isEmpty()) {
-            logger.warn("No mock cases found with '{}' status. Available cases: {}", IN_PROGRESS_STATUS, 
-                       allCases.stream().map(c -> c.getCaseId() + ":" + c.getCaseStatus()).toList());
+            logger.warn("No mock v1 cases found with '{}' status. Available cases: {}", IN_PROGRESS_STATUS, 
+                       allCases.stream().map(c -> c.getNBISCaseID() + ":" + c.getDISAStatus()).toList());
             throw new ApplicationException("No cases found with 'In Progress' status");
         }
         
-        String selectedCaseId = inProgressCase.get().getCaseId();
-        logger.info("Step 2 completed: Selected first 'In Progress' mock case: {}", selectedCaseId);
+        String selectedCaseId = inProgressCase.get().getNBISCaseID();
+        logger.info("Step 2 completed: Selected first 'In Progress' mock v1 case: {}", selectedCaseId);
         return selectedCaseId;
     }
 
@@ -140,6 +213,7 @@ public class MockExternalApiService extends ExternalApiService {
         
         return currentStatus;
     }
+
 
     public List<PdfContent> getPdfContents(String caseId) throws ApplicationException {
         logger.info("Using MOCK service - Getting PDF contents for case: {}", caseId);
@@ -178,5 +252,23 @@ public class MockExternalApiService extends ExternalApiService {
                 "MEDICAL CLEARANCE CERTIFICATE\n\nPatient: John A. Smith\nDate of Examination: February 28, 2025\nPhysician: Dr. Emily Carter, MD\nFacility: Federal Medical Center\nCase Reference: " + caseId + "\n\nEXAMINATION RESULTS:\n\nVITAL SIGNS:\n- Blood Pressure: 120/80 mmHg\n- Heart Rate: 72 bpm\n- Temperature: 98.6°F\n- Weight: 180 lbs\n- Height: 6'0\"\n\nMEDICAL HISTORY:\n- No significant medical conditions\n- No history of mental health treatment\n- No current medications\n- No allergies reported\n\nPHYSICAL EXAMINATION:\n- General appearance: Healthy adult male\n- Cardiovascular: Normal heart sounds\n- Respiratory: Clear lung sounds\n- Neurological: Normal reflexes and mental status\n\nLABORATORY RESULTS:\n- Complete Blood Count: Normal\n- Comprehensive Metabolic Panel: Normal\n- Drug Screen: Negative\n\nCONCLUSION:\nPatient is medically cleared for security clearance duties. No medical conditions that would impair judgment or reliability.\n\nDr. Emily Carter, MD\nLicense #: MD12345",
                 LocalDateTime.of(2025, 2, 28, 16, 0), "Dr. Emily Carter", "approved")
         );
+    }
+
+    @Override
+    public CaseListResponseDto getAllCases(String subjectPersonaObjectId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting all cases for Subject Persona Object ID: {}", subjectPersonaObjectId);
+        return createMockCasesList(subjectPersonaObjectId);
+    }
+
+    @Override
+    public CaseDetailsDto getCaseDetails(String nbisId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting case details for NBIS ID: {}", nbisId);
+        return createMockCaseDetails(nbisId);
+    }
+
+    @Override
+    public CaseHistoryResponseDto getCaseHistoryFromV1Api(String nbisId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting case history for NBIS ID: {}", nbisId);
+        return createMockCaseHistoryResponse(nbisId);
     }
 }
