@@ -73,15 +73,15 @@ public class MockExternalApiService extends ExternalApiService {
         
         List<CaseDto> cases = Arrays.asList(
             new CaseDto("25092CASE1329752", "In Progress", "272ad768-ea92-4972-a8a5-2c270fdddd33", 
-                "2025-04-02T17:20:19.943Z", "2025-07-18T17:06:45.517Z"),
+                "2025-04-02T17:20:19.943Z", "2025-07-18T17:06:45.517Z", "Yes"),
             new CaseDto("25092CASE1329753", "Pending Investigation", "272ad768-ea92-4972-a8a5-2c270fdddd34", 
-                "2025-04-03T09:15:00.123Z", "2025-07-19T12:30:00.456Z"),
+                "2025-04-03T09:15:00.123Z", "2025-07-19T12:30:00.456Z", "Yes"),
             new CaseDto("25092CASE1329754", "Review - eApp Received", "272ad768-ea92-4972-a8a5-2c270fdddd35", 
-                "2025-04-04T14:30:00.789Z", "2025-07-20T16:45:00.123Z"),
+                "2025-04-04T14:30:00.789Z", "2025-07-20T16:45:00.123Z", "No"),
             new CaseDto("25092CASE1329755", "In Progress", "272ad768-ea92-4972-a8a5-2c270fdddd36", 
-                "2025-04-05T08:00:00.456Z", "2025-07-21T09:30:00.789Z"),
+                "2025-04-05T08:00:00.456Z", "2025-07-21T09:30:00.789Z", "Yes"),
             new CaseDto("25092CASE1329756", "Completed", "272ad768-ea92-4972-a8a5-2c270fdddd37", 
-                "2025-04-06T11:45:00.123Z", "2025-07-22T14:15:00.456Z")
+                "2025-04-06T11:45:00.123Z", "2025-07-22T14:15:00.456Z", "Yes")
         );
         
         MetadataDto metadata = new MetadataDto(cases.size());

@@ -1,31 +1,15 @@
 package com.clearance.tracker.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CaseHistoryResponseDto {
     private String NBISCaseID;
     private List<CaseHistoryDto> History;
-
-    public CaseHistoryResponseDto() {}
-
-    public CaseHistoryResponseDto(String NBISCaseID, List<CaseHistoryDto> History) {
-        this.NBISCaseID = NBISCaseID;
-        this.History = History;
-    }
-
-    public String getNBISCaseID() {
-        return NBISCaseID;
-    }
-
-    public void setNBISCaseID(String NBISCaseID) {
-        this.NBISCaseID = NBISCaseID;
-    }
-
-    public List<CaseHistoryDto> getHistory() {
-        return History;
-    }
-
-    public void setHistory(List<CaseHistoryDto> History) {
-        this.History = History;
-    }
 }
