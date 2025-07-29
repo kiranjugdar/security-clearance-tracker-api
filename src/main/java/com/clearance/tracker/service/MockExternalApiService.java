@@ -217,17 +217,26 @@ public class MockExternalApiService extends ExternalApiService {
     }
 
 
-    public List<PdfContent> getPdfContents(String caseId) throws ApplicationException {
-        logger.info("Using MOCK service - Getting PDF contents for case: {}", caseId);
+
+    @Override
+    public PdfContent getLatestPdf(String caseId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting latest PDF for case: {}", caseId);
         
         try {
             List<PdfContent> mockPdfContents = createMockPdfContents(caseId);
-            logger.info("Successfully retrieved {} mock PDF contents for case {}", mockPdfContents.size(), caseId);
-            return mockPdfContents;
+            // Return the latest PDF (last in the list, assuming ordered by date)
+            PdfContent latestPdf = mockPdfContents.isEmpty() ? null : 
+                mockPdfContents.stream()
+                    .max((p1, p2) -> p1.getUploadDate().compareTo(p2.getUploadDate()))
+                    .orElse(mockPdfContents.get(mockPdfContents.size() - 1));
+            
+            logger.info("Successfully retrieved latest mock PDF for case {}: {}", 
+                       caseId, latestPdf != null ? latestPdf.getFileName() : "null");
+            return latestPdf;
             
         } catch (Exception e) {
-            logger.error("Error in MOCK service during PDF contents retrieval for case {}. Error: {}", caseId, e.getMessage(), e);
-            throw new ApplicationException("Mock service error during PDF contents retrieval: " + e.getMessage(), e);
+            logger.error("Error in MOCK service during latest PDF retrieval for case {}. Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Mock service error during latest PDF retrieval: " + e.getMessage(), e);
         }
     }
 

@@ -185,32 +185,33 @@ public class ExternalApiService {
     }
 
 
-    public List<PdfContent> getPdfContents(String caseId) throws ApplicationException {
-        String url = baseUrl + "/api/pdf-contents?caseId=" + caseId;
-        logger.info("Calling external API to get PDF contents for case {} from URL: {}", caseId, url);
+
+    public PdfContent getLatestPdf(String caseId) throws ApplicationException {
+        String url = baseUrl + "/api/latest-pdf?caseId=" + caseId;
+        logger.info("Calling external API to get latest PDF for case {} from URL: {}", caseId, url);
         
         try {
-            ResponseEntity<List<PdfContent>> response = restTemplate.exchange(
+            ResponseEntity<PdfContent> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<PdfContent>>() {}
+                PdfContent.class
             );
             
-            List<PdfContent> pdfContents = response.getBody();
-            logger.info("Successfully retrieved {} PDF contents for case {}", 
-                       pdfContents != null ? pdfContents.size() : 0, caseId);
+            PdfContent latestPdf = response.getBody();
+            logger.info("Successfully retrieved latest PDF for case {}: {}", 
+                       caseId, latestPdf != null ? latestPdf.getFileName() : "null");
             
-            return pdfContents;
+            return latestPdf;
             
         } catch (RestClientException e) {
-            logger.error("Failed to call external API for PDF contents. Case: {}, URL: {}, Error: {}", 
+            logger.error("Failed to call external API for latest PDF. Case: {}, URL: {}, Error: {}", 
                         caseId, url, e.getMessage(), e);
-            throw new ApplicationException("External service call failed for PDF contents: " + e.getMessage(), e);
+            throw new ApplicationException("External service call failed for latest PDF: " + e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("Unexpected error occurred while calling external API for PDF contents. Case: {}, URL: {}, Error: {}", 
+            logger.error("Unexpected error occurred while calling external API for latest PDF. Case: {}, URL: {}, Error: {}", 
                         caseId, url, e.getMessage(), e);
-            throw new ApplicationException("Unexpected error during PDF contents retrieval: " + e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during latest PDF retrieval: " + e.getMessage(), e);
         }
     }
 

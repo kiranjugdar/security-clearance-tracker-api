@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 
 @RestController
 @RequestMapping("/clearance")
@@ -68,81 +67,43 @@ public class SecurityClearanceController {
         }
     }
 
-    @GetMapping("/pdf-contents/{caseId}")
-    public ResponseEntity<?> getPdfContents(@PathVariable String caseId, HttpServletRequest request) {
-        logger.info("Received request to get PDF contents for case {} from client: {}", caseId, request.getRemoteAddr());
-        
-        try {
-            List<PdfContent> pdfContents = externalApiService.getPdfContents(caseId);
-            logger.info("Successfully processed PDF contents request for case {}. Returning {} documents", 
-                       caseId, pdfContents != null ? pdfContents.size() : 0);
-            return ResponseEntity.ok(pdfContents);
-            
-        } catch (ApplicationException e) {
-            logger.error("Application error processing PDF contents request for case {}: {}", caseId, e.getMessage(), e);
-            
-            ErrorResponse errorResponse = new ErrorResponse(
-                e.getErrorCode(),
-                "External service failed: " + e.getMessage(),
-                request.getRequestURI()
-            );
-            
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        } catch (Exception e) {
-            logger.error("Unexpected error in PDF contents controller for case {}: {}", caseId, e.getMessage(), e);
-            
-            ErrorResponse errorResponse = new ErrorResponse(
-                9999,
-                "System error occurred",
-                request.getRequestURI()
-            );
-            
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
 
-    @GetMapping("/pdf-download/{caseId}/{documentId}")
-    public ResponseEntity<?> downloadPdf(@PathVariable String caseId, @PathVariable Long documentId, HttpServletRequest request) {
-        logger.info("Received request to download PDF for case {} document {} from client: {}", caseId, documentId, request.getRemoteAddr());
+    @GetMapping("/pdf-download/{caseId}")
+    public ResponseEntity<?> downloadPdf(@PathVariable String caseId, HttpServletRequest request) {
+        logger.info("Received request to download latest PDF for case {} from client: {}", caseId, request.getRemoteAddr());
         
         try {
-            // Get all PDF contents for the case
-            List<PdfContent> pdfContents = externalApiService.getPdfContents(caseId);
+            // Get latest PDF for the case
+            PdfContent latestPdf = externalApiService.getLatestPdf(caseId);
             
-            // Find the specific document
-            PdfContent targetDocument = pdfContents.stream()
-                .filter(pdf -> pdf.getId().equals(documentId))
-                .findFirst()
-                .orElse(null);
-            
-            if (targetDocument == null) {
-                logger.warn("Document {} not found for case {}", documentId, caseId);
+            if (latestPdf == null) {
+                logger.warn("No PDF found for case {}", caseId);
                 ErrorResponse errorResponse = new ErrorResponse(
                     404,
-                    "Document not found for case: " + caseId + ", document ID: " + documentId,
+                    "No PDF found for case: " + caseId,
                     request.getRequestURI()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
             
             // Generate PDF
-            byte[] pdfBytes = pdfGeneratorService.generatePdf(targetDocument);
+            byte[] pdfBytes = pdfGeneratorService.generatePdf(latestPdf);
             
             // Set headers for PDF download
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", targetDocument.getFileName());
+            headers.setContentDispositionFormData("attachment", latestPdf.getFileName());
             headers.setContentLength(pdfBytes.length);
             
-            logger.info("Successfully generated PDF for case {} document {}. Size: {} bytes", 
-                       caseId, documentId, pdfBytes.length);
+            logger.info("Successfully generated latest PDF for case {}. File: {}, Size: {} bytes", 
+                       caseId, latestPdf.getFileName(), pdfBytes.length);
             
             return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
             
         } catch (ApplicationException e) {
-            logger.error("Application error processing PDF download for case {} document {}: {}", caseId, documentId, e.getMessage(), e);
+            logger.error("Application error processing latest PDF download for case {}: {}", caseId, e.getMessage(), e);
             
             ErrorResponse errorResponse = new ErrorResponse(
                 e.getErrorCode(),
@@ -152,7 +113,7 @@ public class SecurityClearanceController {
             
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         } catch (Exception e) {
-            logger.error("Unexpected error in PDF download controller for case {} document {}: {}", caseId, documentId, e.getMessage(), e);
+            logger.error("Unexpected error in latest PDF download controller for case {}: {}", caseId, e.getMessage(), e);
             
             ErrorResponse errorResponse = new ErrorResponse(
                 9999,
