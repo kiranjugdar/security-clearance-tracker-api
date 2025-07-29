@@ -1,5 +1,6 @@
 package com.clearance.tracker.controller;
 
+import com.clearance.tracker.dto.CaseDetailsAndHistoryResponse;
 import com.clearance.tracker.dto.CombinedCaseResponse;
 import com.clearance.tracker.dto.ErrorResponse;
 import com.clearance.tracker.dto.PdfContent;
@@ -152,6 +153,40 @@ public class SecurityClearanceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         } catch (Exception e) {
             logger.error("Unexpected error in PDF download controller for case {} document {}: {}", caseId, documentId, e.getMessage(), e);
+            
+            ErrorResponse errorResponse = new ErrorResponse(
+                9999,
+                "System error occurred",
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/case-details-history/{caseId}")
+    public ResponseEntity<?> getCaseDetailsAndHistory(@PathVariable String caseId, HttpServletRequest request) {
+        logger.info("Received request to get case details and history for case {} from client: {}", caseId, request.getRemoteAddr());
+        
+        try {
+            CaseDetailsAndHistoryResponse response = externalApiService.getCaseDetailsAndHistory(caseId);
+            logger.info("Successfully processed case details and history request for case {}. History items: {}", 
+                       caseId, 
+                       response.getCaseHistory() != null && response.getCaseHistory().getHistory() != null ? response.getCaseHistory().getHistory().size() : 0);
+            return ResponseEntity.ok(response);
+            
+        } catch (ApplicationException e) {
+            logger.error("Application error processing case details and history request for case {}: {}", caseId, e.getMessage(), e);
+            
+            ErrorResponse errorResponse = new ErrorResponse(
+                e.getErrorCode(),
+                "External service failed: " + e.getMessage(),
+                request.getRequestURI()
+            );
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error in case details and history controller for case {}: {}", caseId, e.getMessage(), e);
             
             ErrorResponse errorResponse = new ErrorResponse(
                 9999,

@@ -1,5 +1,6 @@
 package com.clearance.tracker.service;
 
+import com.clearance.tracker.dto.CaseDetailsAndHistoryResponse;
 import com.clearance.tracker.dto.CaseDto;
 import com.clearance.tracker.dto.CaseDetailsDto;
 import com.clearance.tracker.dto.CaseHistoryDto;
@@ -26,6 +27,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Profile("!mock")
@@ -291,6 +293,63 @@ public class ExternalApiService {
             logger.error("Unexpected error occurred while calling external API for case history. NBIS ID: {}, URL: {}, Error: {}", 
                         nbisId, url, e.getMessage(), e);
             throw new ApplicationException("Unexpected error during case history retrieval: " + e.getMessage(), e);
+        }
+    }
+
+    public CaseDetailsAndHistoryResponse getCaseDetailsAndHistory(String caseId) throws ApplicationException {
+        logger.info("Getting case details and history asynchronously for case ID: {} on thread: {}", 
+                   caseId, Thread.currentThread().getName());
+        
+        try {
+            // Execute both API calls asynchronously
+            CompletableFuture<CaseDetailsDto> caseDetailsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    logger.debug("Starting async call for case details: {} on thread: {} (ID: {})", 
+                               caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+                    return getCaseDetails(caseId);
+                } catch (ApplicationException e) {
+                    logger.error("Error in async case details call for case {} on thread {}: {}", 
+                               caseId, Thread.currentThread().getName(), e.getMessage());
+                    throw new RuntimeException("Case details retrieval failed", e);
+                }
+            });
+            
+            CompletableFuture<CaseHistoryResponseDto> caseHistoryFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    logger.debug("Starting async call for case history: {} on thread: {} (ID: {})", 
+                               caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+                    return getCaseHistoryFromV1Api(caseId);
+                } catch (ApplicationException e) {
+                    logger.error("Error in async case history call for case {} on thread {}: {}", 
+                               caseId, Thread.currentThread().getName(), e.getMessage());
+                    throw new RuntimeException("Case history retrieval failed", e);
+                }
+            });
+            
+            // Wait for both futures to complete and get results
+            logger.debug("Waiting for async calls to complete on main thread: {} (ID: {})", 
+                       Thread.currentThread().getName(), Thread.currentThread().getId());
+            CaseDetailsDto caseDetails = caseDetailsFuture.join();
+            CaseHistoryResponseDto caseHistory = caseHistoryFuture.join();
+            
+            // Combine both into response
+            CaseDetailsAndHistoryResponse response = new CaseDetailsAndHistoryResponse(caseId, caseDetails, caseHistory);
+            
+            logger.info("Successfully retrieved case details and history asynchronously for case {} on thread: {}. History items: {}", 
+                       caseId, Thread.currentThread().getName(), 
+                       caseHistory != null && caseHistory.getHistory() != null ? caseHistory.getHistory().size() : 0);
+            
+            return response;
+            
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof ApplicationException) {
+                throw (ApplicationException) e.getCause();
+            }
+            logger.error("Unexpected runtime error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
         }
     }
 }

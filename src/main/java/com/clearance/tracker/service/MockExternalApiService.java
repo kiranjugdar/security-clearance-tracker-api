@@ -1,5 +1,6 @@
 package com.clearance.tracker.service;
 
+import com.clearance.tracker.dto.CaseDetailsAndHistoryResponse;
 import com.clearance.tracker.dto.CaseDto;
 import com.clearance.tracker.dto.CaseDetailsDto;
 import com.clearance.tracker.dto.CaseHistoryDto;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Profile("mock")
@@ -270,5 +272,45 @@ public class MockExternalApiService extends ExternalApiService {
     public CaseHistoryResponseDto getCaseHistoryFromV1Api(String nbisId) throws ApplicationException {
         logger.info("Using MOCK service - Getting case history for NBIS ID: {}", nbisId);
         return createMockCaseHistoryResponse(nbisId);
+    }
+
+    @Override
+    public CaseDetailsAndHistoryResponse getCaseDetailsAndHistory(String caseId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting case details and history asynchronously for case ID: {} on thread: {}", 
+                   caseId, Thread.currentThread().getName());
+        
+        try {
+            // Execute both mock calls asynchronously to simulate real async behavior
+            CompletableFuture<CaseDetailsDto> caseDetailsFuture = CompletableFuture.supplyAsync(() -> {
+                logger.debug("Starting async MOCK call for case details: {} on thread: {} (ID: {})", 
+                           caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+                return createMockCaseDetails(caseId);
+            });
+            
+            CompletableFuture<CaseHistoryResponseDto> caseHistoryFuture = CompletableFuture.supplyAsync(() -> {
+                logger.debug("Starting async MOCK call for case history: {} on thread: {} (ID: {})", 
+                           caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+                return createMockCaseHistoryResponse(caseId);
+            });
+            
+            // Wait for both futures to complete and get results
+            logger.debug("MOCK service - Waiting for async calls to complete on main thread: {} (ID: {})", 
+                       Thread.currentThread().getName(), Thread.currentThread().getId());
+            CaseDetailsDto caseDetails = caseDetailsFuture.join();
+            CaseHistoryResponseDto caseHistory = caseHistoryFuture.join();
+            
+            // Combine both into response
+            CaseDetailsAndHistoryResponse response = new CaseDetailsAndHistoryResponse(caseId, caseDetails, caseHistory);
+            
+            logger.info("Successfully retrieved MOCK case details and history asynchronously for case {} on thread: {}. History items: {}", 
+                       caseId, Thread.currentThread().getName(), 
+                       caseHistory != null && caseHistory.getHistory() != null ? caseHistory.getHistory().size() : 0);
+            
+            return response;
+            
+        } catch (Exception e) {
+            logger.error("Error in MOCK service during async case details and history retrieval for case {}. Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Mock service error during async case details and history retrieval: " + e.getMessage(), e);
+        }
     }
 }
