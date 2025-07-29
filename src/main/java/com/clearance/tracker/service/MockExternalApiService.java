@@ -4,7 +4,6 @@ import com.clearance.tracker.dto.CaseDetailsAndHistoryResponse;
 import com.clearance.tracker.dto.CaseDto;
 import com.clearance.tracker.dto.CaseDetailsDto;
 import com.clearance.tracker.dto.CaseHistoryDto;
-import com.clearance.tracker.dto.CaseHistoryItem;
 import com.clearance.tracker.dto.CaseHistoryResponseDto;
 import com.clearance.tracker.dto.CaseListResponseDto;
 import com.clearance.tracker.dto.CombinedCaseResponse;
@@ -13,7 +12,6 @@ import com.clearance.tracker.dto.CurrentStatusDto;
 import com.clearance.tracker.dto.EAppAccountInfoDto;
 import com.clearance.tracker.dto.MetadataDto;
 import com.clearance.tracker.dto.PIPSStatusCheckResponseDto;
-import com.clearance.tracker.dto.PdfContent;
 import com.clearance.tracker.dto.PyWorkPageDto;
 import com.clearance.tracker.dto.StatusHistoryItem;
 import com.clearance.tracker.exception.ApplicationException;
@@ -219,51 +217,73 @@ public class MockExternalApiService extends ExternalApiService {
 
 
     @Override
-    public PdfContent getLatestPdf(String caseId) throws ApplicationException {
-        logger.info("Using MOCK service - Getting latest PDF for case: {}", caseId);
+    public byte[] getLatestPdf(String caseId) throws ApplicationException {
+        logger.info("Using MOCK service - Getting latest PDF bytes for case: {}", caseId);
         
         try {
-            List<PdfContent> mockPdfContents = createMockPdfContents(caseId);
-            // Return the latest PDF (last in the list, assuming ordered by date)
-            PdfContent latestPdf = mockPdfContents.isEmpty() ? null : 
-                mockPdfContents.stream()
-                    .max((p1, p2) -> p1.getUploadDate().compareTo(p2.getUploadDate()))
-                    .orElse(mockPdfContents.get(mockPdfContents.size() - 1));
+            // Create simple mock PDF bytes that represent a basic PDF structure
+            String mockPdfContent = "%PDF-1.4\n" +
+                "1 0 obj\n" +
+                "<<\n" +
+                "/Type /Catalog\n" +
+                "/Pages 2 0 R\n" +
+                ">>\n" +
+                "endobj\n\n" +
+                "2 0 obj\n" +
+                "<<\n" +
+                "/Type /Pages\n" +
+                "/Kids [3 0 R]\n" +
+                "/Count 1\n" +
+                ">>\n" +
+                "endobj\n\n" +
+                "3 0 obj\n" +
+                "<<\n" +
+                "/Type /Page\n" +
+                "/Parent 2 0 R\n" +
+                "/MediaBox [0 0 612 792]\n" +
+                "/Contents 4 0 R\n" +
+                ">>\n" +
+                "endobj\n\n" +
+                "4 0 obj\n" +
+                "<<\n" +
+                "/Length 54\n" +
+                ">>\n" +
+                "stream\n" +
+                "BT\n" +
+                "/F1 12 Tf\n" +
+                "72 720 Td\n" +
+                "(Security Clearance Document - Case: " + caseId + ") Tj\n" +
+                "ET\n" +
+                "endstream\n" +
+                "endobj\n\n" +
+                "xref\n" +
+                "0 5\n" +
+                "0000000000 65535 f\n" +
+                "0000000009 00000 n\n" +
+                "0000000074 00000 n\n" +
+                "0000000120 00000 n\n" +
+                "0000000179 00000 n\n" +
+                "trailer\n" +
+                "<<\n" +
+                "/Size 5\n" +
+                "/Root 1 0 R\n" +
+                ">>\n" +
+                "startxref\n" +
+                "280\n" +
+                "%%EOF\n";
             
-            logger.info("Successfully retrieved latest mock PDF for case {}: {}", 
-                       caseId, latestPdf != null ? latestPdf.getFileName() : "null");
-            return latestPdf;
+            byte[] pdfBytes = mockPdfContent.getBytes();
+            
+            logger.info("Successfully generated mock PDF bytes for case {}: {} bytes", 
+                       caseId, pdfBytes.length);
+            return pdfBytes;
             
         } catch (Exception e) {
-            logger.error("Error in MOCK service during latest PDF retrieval for case {}. Error: {}", caseId, e.getMessage(), e);
+            logger.error("Error in MOCK service during mock PDF bytes generation for case {}. Error: {}", caseId, e.getMessage(), e);
             throw new ApplicationException("Mock service error during latest PDF retrieval: " + e.getMessage(), e);
         }
     }
 
-    private List<PdfContent> createMockPdfContents(String caseId) {
-        logger.info("Creating mock PDF contents for case: {}", caseId);
-        return Arrays.asList(
-            new PdfContent(1L, caseId, "Security Clearance Application Form", "Application", 
-                "SF-86_" + caseId + ".pdf",
-                "SECURITY CLEARANCE APPLICATION FORM\n\nCase ID: " + caseId + "\n\nSECTION 1: PERSONAL INFORMATION\nFull Name: John A. Smith\nDate of Birth: 01/15/1985\nSSN: XXX-XX-1234\nPlace of Birth: Washington, DC\n\nSECTION 2: EMPLOYMENT HISTORY\nCurrent Employer: Defense Contractor Inc.\nPosition: Software Engineer\nStart Date: 03/2020\nSecurity Officer: Jane Doe\n\nSECTION 3: EDUCATION\nUniversity: Georgetown University\nDegree: Bachelor of Science in Computer Science\nGraduation: May 2007\n\nSECTION 4: REFERENCES\n1. Michael Johnson - Former Supervisor\n2. Sarah Williams - Colleague\n3. Robert Brown - Academic Reference",
-                LocalDateTime.of(2025, 2, 1, 9, 30), "John Smith", "submitted"),
-            
-            new PdfContent(2L, caseId, "Background Investigation Report", "Investigation", 
-                "BIR_" + caseId + ".pdf",
-                "BACKGROUND INVESTIGATION REPORT\n\nSubject: John A. Smith\nCase Number: " + caseId + "\nInvestigation Type: Top Secret Clearance\nInvestigator: Agent Mary Johnson\nDate: February 20, 2025\n\nFINDINGS:\n\n1. EMPLOYMENT VERIFICATION\n- All employment history verified\n- No gaps in employment found\n- Positive recommendations from supervisors\n\n2. EDUCATION VERIFICATION\n- Georgetown University degree confirmed\n- Academic records reviewed\n- No disciplinary actions found\n\n3. CRIMINAL HISTORY CHECK\n- No criminal records found\n- Clean driving record\n- No outstanding warrants\n\n4. FINANCIAL REVIEW\n- Credit score: 750\n- No bankruptcies or foreclosures\n- Current on all financial obligations\n\n5. PERSONAL REFERENCES\n- All references contacted and interviewed\n- Unanimous positive feedback\n- No security concerns raised\n\nRECOMMENDATA: Subject meets all requirements for Top Secret clearance.",
-                LocalDateTime.of(2025, 2, 20, 14, 15), "Agent Mary Johnson", "completed"),
-            
-            new PdfContent(3L, caseId, "Security Interview Transcript", "Interview", 
-                "SIT_" + caseId + ".pdf",
-                "SECURITY INTERVIEW TRANSCRIPT\n\nDate: February 25, 2025\nTime: 10:00 AM\nLocation: Federal Building, Room 305\nInterviewer: Special Agent Robert Davis\nSubject: John A. Smith\nCase: " + caseId + "\n\nINTERVIEW TRANSCRIPT:\n\nAGENT DAVIS: Please state your full name for the record.\n\nSMITH: John Alexander Smith\n\nAGENT DAVIS: Are you applying for a Top Secret security clearance?\n\nSMITH: Yes, that's correct.\n\nAGENT DAVIS: Have you ever been contacted by foreign intelligence services?\n\nSMITH: No, never.\n\nAGENT DAVIS: Do you have any foreign contacts or travel?\n\nSMITH: I traveled to Canada for vacation in 2023, but no foreign contacts related to my work.\n\nAGENT DAVIS: Any concerns about your ability to protect classified information?\n\nSMITH: None whatsoever. I understand the responsibility and take it very seriously.\n\n[Interview continued for 45 minutes]\n\nCONCLUSION: Subject demonstrated good knowledge of security requirements and showed no indicators of security risk.",
-                LocalDateTime.of(2025, 2, 25, 11, 30), "Special Agent Robert Davis", "completed"),
-            
-            new PdfContent(4L, caseId, "Medical Clearance Certificate", "Medical", 
-                "MCC_" + caseId + ".pdf",
-                "MEDICAL CLEARANCE CERTIFICATE\n\nPatient: John A. Smith\nDate of Examination: February 28, 2025\nPhysician: Dr. Emily Carter, MD\nFacility: Federal Medical Center\nCase Reference: " + caseId + "\n\nEXAMINATION RESULTS:\n\nVITAL SIGNS:\n- Blood Pressure: 120/80 mmHg\n- Heart Rate: 72 bpm\n- Temperature: 98.6°F\n- Weight: 180 lbs\n- Height: 6'0\"\n\nMEDICAL HISTORY:\n- No significant medical conditions\n- No history of mental health treatment\n- No current medications\n- No allergies reported\n\nPHYSICAL EXAMINATION:\n- General appearance: Healthy adult male\n- Cardiovascular: Normal heart sounds\n- Respiratory: Clear lung sounds\n- Neurological: Normal reflexes and mental status\n\nLABORATORY RESULTS:\n- Complete Blood Count: Normal\n- Comprehensive Metabolic Panel: Normal\n- Drug Screen: Negative\n\nCONCLUSION:\nPatient is medically cleared for security clearance duties. No medical conditions that would impair judgment or reliability.\n\nDr. Emily Carter, MD\nLicense #: MD12345",
-                LocalDateTime.of(2025, 2, 28, 16, 0), "Dr. Emily Carter", "approved")
-        );
-    }
 
     @Override
     public CaseListResponseDto getAllCases(String subjectPersonaObjectId) throws ApplicationException {

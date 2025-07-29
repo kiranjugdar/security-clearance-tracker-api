@@ -3,10 +3,8 @@ package com.clearance.tracker.controller;
 import com.clearance.tracker.dto.CaseDetailsAndHistoryResponse;
 import com.clearance.tracker.dto.CombinedCaseResponse;
 import com.clearance.tracker.dto.ErrorResponse;
-import com.clearance.tracker.dto.PdfContent;
 import com.clearance.tracker.exception.ApplicationException;
 import com.clearance.tracker.service.ExternalApiService;
-import com.clearance.tracker.service.PdfGeneratorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +25,6 @@ public class SecurityClearanceController {
 
     @Autowired
     private ExternalApiService externalApiService;
-
-    @Autowired
-    private PdfGeneratorService pdfGeneratorService;
 
     @GetMapping("/case-history")
     public ResponseEntity<?> getCaseHistory(@RequestParam String subjectPersonaObjectId, HttpServletRequest request) {
@@ -73,10 +68,10 @@ public class SecurityClearanceController {
         logger.info("Received request to download latest PDF for case {} from client: {}", caseId, request.getRemoteAddr());
         
         try {
-            // Get latest PDF for the case
-            PdfContent latestPdf = externalApiService.getLatestPdf(caseId);
+            // Get latest PDF bytes directly from external API
+            byte[] pdfBytes = externalApiService.getLatestPdf(caseId);
             
-            if (latestPdf == null) {
+            if (pdfBytes == null || pdfBytes.length == 0) {
                 logger.warn("No PDF found for case {}", caseId);
                 ErrorResponse errorResponse = new ErrorResponse(
                     404,
@@ -86,17 +81,14 @@ public class SecurityClearanceController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
             
-            // Generate PDF
-            byte[] pdfBytes = pdfGeneratorService.generatePdf(latestPdf);
-            
             // Set headers for PDF download
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", latestPdf.getFileName());
+            headers.setContentDispositionFormData("attachment", caseId + ".pdf");
             headers.setContentLength(pdfBytes.length);
             
-            logger.info("Successfully generated latest PDF for case {}. File: {}, Size: {} bytes", 
-                       caseId, latestPdf.getFileName(), pdfBytes.length);
+            logger.info("Successfully retrieved latest PDF for case {}. Size: {} bytes", 
+                       caseId, pdfBytes.length);
             
             return ResponseEntity.ok()
                 .headers(headers)

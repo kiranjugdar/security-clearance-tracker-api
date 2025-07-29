@@ -74,7 +74,8 @@ Response (Success - 200 OK):
       "DISAStatus": "Review - eApp Received",
       "SubjectID": "272ad768-ea92-4972-a8a5-2c270fdddd33",
       "pxCreateDateTime": "2025-04-02T17:20:19.943Z",
-      "pxUpdateDateTime": "2025-07-18T17:06:45.517Z"
+      "pxUpdateDateTime": "2025-07-18T17:06:45.517Z",
+      "SFArchivalPDFExist": "Yes"
     },
     {
       "NBISCaseID": "25092CASE1329753",
@@ -82,6 +83,7 @@ Response (Success - 200 OK):
       "SubjectID": "272ad768-ea92-4972-a8a5-2c270fdddd34",
       "pxCreateDateTime": "2025-04-03T09:15:00.123Z",
       "pxUpdateDateTime": "2025-07-19T12:30:00.456Z"
+      "SFArchivalPDFExist": "Yes"
     }
     // ... more cases ...
   ],

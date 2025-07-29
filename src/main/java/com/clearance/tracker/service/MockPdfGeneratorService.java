@@ -14,9 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
 
 @Service
-public class PdfGeneratorService {
+public class MockPdfGeneratorService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PdfGeneratorService.class);
+    private static final Logger logger = LoggerFactory.getLogger(MockPdfGeneratorService.class);
 
     public byte[] generatePdf(PdfContent pdfContent) {
         logger.info("Generating PDF for document: {} (Case: {})", pdfContent.getDocumentName(), pdfContent.getCaseId());
