@@ -37,7 +37,8 @@ public class MockExternalApiService extends ExternalApiService {
 
     @Override
     public CombinedCaseResponse getCaseHistory(String subjectPersonaObjectId) throws ApplicationException {
-        logger.info("Using MOCK service - Starting complex case history retrieval process for Subject Persona Object ID: {}", subjectPersonaObjectId);
+        logger.info("Using MOCK service - Starting complex case history retrieval process asynchronously for Subject Persona Object ID: {} on thread: {}", 
+                   subjectPersonaObjectId, Thread.currentThread().getName());
         
         try {
             // Step 1: Mock case list data for subject
@@ -48,25 +49,24 @@ public class MockExternalApiService extends ExternalApiService {
             // Step 2: Filter cases with "In Progress" status and pick first one
             String selectedCaseId = filterAndSelectFirstInProgressCaseFromV1(casesList.getCases());
             
-            // Step 3: Get mock case details for selected case
-            CaseDetailsDto caseDetails = createMockCaseDetails(selectedCaseId);
-            
-            // Step 4: Mock case history for selected case
-            CaseHistoryResponseDto caseHistory = createMockCaseHistoryResponse(selectedCaseId);
+            // Step 3 & 4: Execute case details and history calls asynchronously using shared method
+            Object[] results = getMockCaseDetailsAndHistoryAsync(selectedCaseId);
+            CaseDetailsDto caseDetails = (CaseDetailsDto) results[0];
+            CaseHistoryResponseDto caseHistory = (CaseHistoryResponseDto) results[1];
             logger.info("Step 4 completed: Retrieved {} mock case history items for case {}", 
                        caseHistory.getHistory().size(), selectedCaseId);
             
             // Step 5: Combine all mock data and return
             CombinedCaseResponse response = new CombinedCaseResponse(casesList, caseDetails, caseHistory, selectedCaseId);
             
-            logger.info("Successfully completed MOCK case history retrieval for Subject Persona Object ID: {}. Selected case: {}, Total cases: {}, History items: {}", 
-                       subjectPersonaObjectId, selectedCaseId, casesList.getCases().size(), caseHistory.getHistory().size());
+            logger.info("Successfully completed MOCK case history retrieval asynchronously for Subject Persona Object ID: {} on thread: {}. Selected case: {}, Total cases: {}, History items: {}", 
+                       subjectPersonaObjectId, Thread.currentThread().getName(), selectedCaseId, casesList.getCases().size(), caseHistory.getHistory().size());
             
             return response;
             
         } catch (Exception e) {
-            logger.error("Error in MOCK service during case history retrieval. Error: {}", e.getMessage(), e);
-            throw new ApplicationException("Mock service error during case history retrieval: " + e.getMessage(), e);
+            logger.error("Error in MOCK service during async case history retrieval. Error: {}", e.getMessage(), e);
+            throw new ApplicationException("Mock service error during async case history retrieval: " + e.getMessage(), e);
         }
     }
 
@@ -280,24 +280,10 @@ public class MockExternalApiService extends ExternalApiService {
                    caseId, Thread.currentThread().getName());
         
         try {
-            // Execute both mock calls asynchronously to simulate real async behavior
-            CompletableFuture<CaseDetailsDto> caseDetailsFuture = CompletableFuture.supplyAsync(() -> {
-                logger.debug("Starting async MOCK call for case details: {} on thread: {} (ID: {})", 
-                           caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
-                return createMockCaseDetails(caseId);
-            });
-            
-            CompletableFuture<CaseHistoryResponseDto> caseHistoryFuture = CompletableFuture.supplyAsync(() -> {
-                logger.debug("Starting async MOCK call for case history: {} on thread: {} (ID: {})", 
-                           caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
-                return createMockCaseHistoryResponse(caseId);
-            });
-            
-            // Wait for both futures to complete and get results
-            logger.debug("MOCK service - Waiting for async calls to complete on main thread: {} (ID: {})", 
-                       Thread.currentThread().getName(), Thread.currentThread().getId());
-            CaseDetailsDto caseDetails = caseDetailsFuture.join();
-            CaseHistoryResponseDto caseHistory = caseHistoryFuture.join();
+            // Execute both mock calls asynchronously using shared method
+            Object[] results = getMockCaseDetailsAndHistoryAsync(caseId);
+            CaseDetailsDto caseDetails = (CaseDetailsDto) results[0];
+            CaseHistoryResponseDto caseHistory = (CaseHistoryResponseDto) results[1];
             
             // Combine both into response
             CaseDetailsAndHistoryResponse response = new CaseDetailsAndHistoryResponse(caseId, caseDetails, caseHistory);
@@ -312,5 +298,36 @@ public class MockExternalApiService extends ExternalApiService {
             logger.error("Error in MOCK service during async case details and history retrieval for case {}. Error: {}", caseId, e.getMessage(), e);
             throw new ApplicationException("Mock service error during async case details and history retrieval: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Private method to asynchronously retrieve mock case details and history for a given case ID
+     * @param caseId The case ID to retrieve data for
+     * @return Array containing [CaseDetailsDto, CaseHistoryResponseDto]
+     */
+    private Object[] getMockCaseDetailsAndHistoryAsync(String caseId) {
+        logger.debug("Starting async MOCK retrieval for case details and history: {} on thread: {} (ID: {})", 
+                   caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+        
+        // Execute both mock calls asynchronously
+        CompletableFuture<CaseDetailsDto> caseDetailsFuture = CompletableFuture.supplyAsync(() -> {
+            logger.debug("Starting async MOCK call for case details: {} on thread: {} (ID: {})", 
+                       caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+            return createMockCaseDetails(caseId);
+        });
+        
+        CompletableFuture<CaseHistoryResponseDto> caseHistoryFuture = CompletableFuture.supplyAsync(() -> {
+            logger.debug("Starting async MOCK call for case history: {} on thread: {} (ID: {})", 
+                       caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+            return createMockCaseHistoryResponse(caseId);
+        });
+        
+        // Wait for both futures to complete and get results
+        logger.debug("MOCK service - Waiting for async calls to complete on main thread: {} (ID: {})", 
+                   Thread.currentThread().getName(), Thread.currentThread().getId());
+        CaseDetailsDto caseDetails = caseDetailsFuture.join();
+        CaseHistoryResponseDto caseHistory = caseHistoryFuture.join();
+        
+        return new Object[]{caseDetails, caseHistory};
     }
 }

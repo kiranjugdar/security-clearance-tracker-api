@@ -43,7 +43,8 @@ public class ExternalApiService {
     private String baseUrl;
 
     public CombinedCaseResponse getCaseHistory(String subjectPersonaObjectId) throws ApplicationException {
-        logger.info("Starting complex case history retrieval process using external v1 APIs for Subject Persona Object ID: {}", subjectPersonaObjectId);
+        logger.info("Starting complex case history retrieval process using external v1 APIs asynchronously for Subject Persona Object ID: {} on thread: {}", 
+                   subjectPersonaObjectId, Thread.currentThread().getName());
         
         try {
             // Step 1: Call external /api/v1/cases to get case list for the subject
@@ -52,26 +53,29 @@ public class ExternalApiService {
             // Step 2: Filter cases with "In Progress" status and pick first one
             String selectedCaseId = filterAndSelectFirstInProgressCaseFromV1(caseListResponse.getCases());
             
-            // Step 3: Get detailed case information for selected case
-            CaseDetailsDto caseDetails = getCaseDetails(selectedCaseId);
+            // Step 3 & 4: Execute case details and history calls asynchronously using shared method
+            Object[] results = getCaseDetailsAndHistoryAsync(selectedCaseId);
+            CaseDetailsDto caseDetails = (CaseDetailsDto) results[0];
+            CaseHistoryResponseDto caseHistoryResponse = (CaseHistoryResponseDto) results[1];
             
-            // Step 4: Call external /api/v1/cases/{nbisId}/history API with selected caseID
-            CaseHistoryResponseDto caseHistoryResponse = getCaseHistoryFromV1Api(selectedCaseId);
-            
-            // Step 5: Combine all data and return (no current status extraction needed as it's in the response)
+            // Step 5: Combine all data and return
             CombinedCaseResponse response = new CombinedCaseResponse(caseListResponse, caseDetails, caseHistoryResponse, selectedCaseId);
             
-            logger.info("Successfully completed complex case history retrieval using v1 APIs for Subject Persona Object ID: {}. Selected case: {}, Total cases: {}, History items: {}", 
-                       subjectPersonaObjectId, selectedCaseId, 
+            logger.info("Successfully completed complex case history retrieval using v1 APIs asynchronously for Subject Persona Object ID: {} on thread: {}. Selected case: {}, Total cases: {}, History items: {}", 
+                       subjectPersonaObjectId, Thread.currentThread().getName(), selectedCaseId, 
                        caseListResponse.getCases() != null ? caseListResponse.getCases().size() : 0,
                        caseHistoryResponse.getHistory() != null ? caseHistoryResponse.getHistory().size() : 0);
             
             return response;
             
-        } catch (RestClientException e) {
-            logger.error("Failed to call external v1 API during complex case history retrieval for Subject Persona Object ID: {}. Error: {}", subjectPersonaObjectId, e.getMessage(), e);
-            throw new ApplicationException("External v1 service call failed during case history retrieval: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof ApplicationException) {
+                throw (ApplicationException) e.getCause();
+            }
+            logger.error("Unexpected runtime error during async complex case history retrieval for Subject Persona Object ID: {}. Error: {}", subjectPersonaObjectId, e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async v1 case history retrieval: " + e.getMessage(), e);
         } catch (Exception e) {
+            // This catches RestClientException and other exceptions from getAllCases call
             logger.error("Unexpected error during complex case history retrieval with v1 APIs for Subject Persona Object ID: {}. Error: {}", subjectPersonaObjectId, e.getMessage(), e);
             throw new ApplicationException("Unexpected error during v1 case history retrieval: " + e.getMessage(), e);
         }
@@ -301,6 +305,43 @@ public class ExternalApiService {
                    caseId, Thread.currentThread().getName());
         
         try {
+            // Execute both API calls asynchronously using shared method
+            Object[] results = getCaseDetailsAndHistoryAsync(caseId);
+            CaseDetailsDto caseDetails = (CaseDetailsDto) results[0];
+            CaseHistoryResponseDto caseHistory = (CaseHistoryResponseDto) results[1];
+            
+            // Combine both into response
+            CaseDetailsAndHistoryResponse response = new CaseDetailsAndHistoryResponse(caseId, caseDetails, caseHistory);
+            
+            logger.info("Successfully retrieved case details and history asynchronously for case {} on thread: {}. History items: {}", 
+                       caseId, Thread.currentThread().getName(), 
+                       caseHistory != null && caseHistory.getHistory() != null ? caseHistory.getHistory().size() : 0);
+            
+            return response;
+            
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof ApplicationException) {
+                throw (ApplicationException) e.getCause();
+            }
+            logger.error("Unexpected runtime error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Private method to asynchronously retrieve case details and history for a given case ID
+     * @param caseId The case ID to retrieve data for
+     * @return Array containing [CaseDetailsDto, CaseHistoryResponseDto]
+     * @throws ApplicationException if any error occurs during retrieval
+     */
+    private Object[] getCaseDetailsAndHistoryAsync(String caseId) throws ApplicationException {
+        logger.debug("Starting async retrieval for case details and history: {} on thread: {} (ID: {})", 
+                   caseId, Thread.currentThread().getName(), Thread.currentThread().getId());
+        
+        try {
             // Execute both API calls asynchronously
             CompletableFuture<CaseDetailsDto> caseDetailsFuture = CompletableFuture.supplyAsync(() -> {
                 try {
@@ -332,24 +373,14 @@ public class ExternalApiService {
             CaseDetailsDto caseDetails = caseDetailsFuture.join();
             CaseHistoryResponseDto caseHistory = caseHistoryFuture.join();
             
-            // Combine both into response
-            CaseDetailsAndHistoryResponse response = new CaseDetailsAndHistoryResponse(caseId, caseDetails, caseHistory);
-            
-            logger.info("Successfully retrieved case details and history asynchronously for case {} on thread: {}. History items: {}", 
-                       caseId, Thread.currentThread().getName(), 
-                       caseHistory != null && caseHistory.getHistory() != null ? caseHistory.getHistory().size() : 0);
-            
-            return response;
+            return new Object[]{caseDetails, caseHistory};
             
         } catch (RuntimeException e) {
             if (e.getCause() instanceof ApplicationException) {
                 throw (ApplicationException) e.getCause();
             }
             logger.error("Unexpected runtime error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
-            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error during async case details and history retrieval. Case: {}, Error: {}", caseId, e.getMessage(), e);
-            throw new ApplicationException("Unexpected error during async case details and history retrieval: " + e.getMessage(), e);
+            throw new ApplicationException("Unexpected error during async retrieval: " + e.getMessage(), e);
         }
     }
 }
