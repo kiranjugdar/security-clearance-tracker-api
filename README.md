@@ -67,6 +67,14 @@ mvn clean compile
 mvn test
 ```
 
+### Running application
+1. System Property (via Maven):
+  mvn spring-boot:run -Dserver.port=8080
+
+  2. Command Line Argument (via Maven):
+  mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8080"
+
+
 ### Creating a JAR
 ```bash
 mvn clean package
@@ -82,4 +90,6 @@ The JAR file will be created in the `target/` directory.
   docker run -p 8080:80 security-clearance-tracker
 
   # Access at http://localhost:8080
+
+
 
